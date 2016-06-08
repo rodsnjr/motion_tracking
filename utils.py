@@ -1,7 +1,55 @@
 import numpy as np
+import math as math
 
 PONTOS_ISOLADOS = np.array([[-1,-1,-1], [-1, 8, -1], [-1,-1,-1]])
 
+
+def euclidian_dist(a, b):
+    x = a[0] - b[0]
+    y = a[1] - b[1]
+    return math.sqrt(x * x + y * y)
+
+
+def expose_trackers(frame):
+    import cv2
+    # blur the image to remove noise
+    # substituir por um algoritmo próprio de mediana
+    dst = cv2.medianBlur(frame, 3)
+
+    # Threshold segmentation
+    # Everyone below 220 becomes black
+    dst[dst < 220] = 0
+    # Everyone above 220 becomes white
+    dst[dst > 220] = 255
+
+    return dst
+
+
+def find_trackers(image):
+    image = expose_trackers(image)
+
+    # Get all white space coordinates
+    image = image[:, :, 1]
+    whites = np.transpose(np.nonzero(image))
+    # whites.sort(axis=1)
+    valores = []
+
+    for i, xy in enumerate(whites):
+        # print(xy)
+        # proximo valor na base
+        prox = (0, 0)
+        if i + 1 < whites.shape[0]:
+            prox = whites[i+1]
+        else:
+            prox = whites[i-1]
+
+        dist = euclidian_dist((xy[0], xy[1]), (prox[0], prox[1]))
+
+        if dist > 25:
+            print((xy[1], xy[0]))
+            valores.append((xy[1], xy[0]))
+
+    return valores
 
 # Array de espaço, ex [[1,2,3], [4,3,1], [4,4,4]]
 # Sendo o ponto central 3

@@ -1,7 +1,7 @@
 import numpy as np
 import math as math
 
-#KN for Kernels
+# KN for Kernels
 KN_ISOLATED_POINTS = np.array([[-1,-1,-1], [-1, 8, -1], [-1,-1,-1]])
 
 
@@ -42,6 +42,7 @@ class Tracker(object):
         self.positions.sort()
         other.positions.sort()
         return self.positions == other.positions
+
 
 # based on flood fill with a queue
 # get all the tracker/white positions of the current point

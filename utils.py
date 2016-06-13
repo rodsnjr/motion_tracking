@@ -106,25 +106,77 @@ def euclidean_dist(a, b):
 
 # Expose all white trackers of the frame
 def expose_trackers(frame):
-    import cv2
-    # blur the image to remove noise
-    # substituir por um algoritmo próprio de median blur
-    dst = cv2.medianBlur(frame, 3)
+    # Start by slicing the 3 dimension image
+    image = frame[:, :, 1]
 
-    # Threshold segmentation
-    # Everyone below 220 becomes black
-    dst[dst < 230] = 0
-    # Everyone above 220 becomes white
-    dst[dst > 230] = 255
+    # blur the image to remove noise
+    # OpenCV Blur, probably faster
+    # import cv2
+    # dst = cv2.medianBlur(image, 3)
+    # My simple median_blur
+    dst = median_blur(image)
+
+    dst = np_thresh_segmentation(dst)
 
     return dst
+
+
+def median_blur(src, median_size=3):
+    dst = np.copy(src)
+    medians = list()
+    middle = median_size // 2
+    y = 0
+    i = 0
+    while y < dst.shape[0]:
+        for x, col in enumerate(dst[y]):
+            if i < median_size:
+                default = ((y, x), col)
+                yi = y - middle
+                while yi < y + median_size:
+                    if y + yi < dst.shape[0]:
+                        medians.append(((y + yi, x), dst[y + yi][x]))
+                    else:
+                        medians.append(default)
+                    yi += 1
+
+                i += 1
+            else:
+                i = 0
+                sorted(medians, key=lambda val: val[1])
+                median = medians[median_size // 2][1]
+                for item in medians:
+                    dst[item[0][0]][item[0][1]] = median
+                medians.clear()
+        y += median_size
+
+    return dst
+
+
+# Threshold segmentation using numpy
+def np_thresh_segmentation(src, threshold = 230, color1 = 0, color2 = 255):
+    # Everyone below 220 becomes black
+    src[src < threshold] = color1
+    # Everyone above 220 becomes white
+    src[src > threshold] = color2
+    return src
+
+
+# Threshold segmentation, iterates over the image and change the colors
+# above the threshold to color1, and below to color2
+def thresh_segmentation(src, threshold = 230, color1 = 0, color2 = 255):
+    for row in src:
+        for x, col in enumerate(row):
+                if col > threshold:
+                    row[x] = color1
+                else:
+                    row[x] = color2
+    return src
 
 
 def find_trackers_1(frame):
     image = expose_trackers(frame)
 
     # slice the images to only intensity dimensions
-    image = image[:, :, 1]
     trackers = []
     i = 0
     for y, row in enumerate(image):

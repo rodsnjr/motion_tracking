@@ -89,7 +89,7 @@ def nearest_points(trackers, next_frame):
 
 # might assume that each tracker has its own pixels as a square
 # else set the oldFrame parameter
-def image_comparsion(trackers, next_frame, oldFrame=None):
+def image_comparsion(trackers, next_frame, oldFrame=None, default_size=6):
     """
     1- Para cada marcador fazer a comparação da soma de diferenças absolutas
 
@@ -100,27 +100,25 @@ def image_comparsion(trackers, next_frame, oldFrame=None):
     """
     # Create tracker
     def create_tracker(current_tracker, square, positions):
-        pass
+        n_tracker = utils.Tracker(positions, current_tracker.index, current_tracker.tracking, square)
+        new_trackers.append(n_tracker)
 
-    def get_sad(current_tracker, position):
-        # TODO Definir o tamanho
-        # por enquanto fica 6x6
-        square, positions = utils.get_square_positions(next_frame, position, 6)
+    def get_sad(position):
+        square, positions = utils.get_square_positions(next_frame, position, default_size)
         sad = utils.sad(tracker.pixels, square)
         return sad, square, positions
 
     new_trackers = []
 
     for tracker in trackers:
-        # TODO pegar os arrays nos lugares corretos
         xy_top = (tracker.positions[0][0], tracker.positions[0][1] + len(tracker.positions))
         xy_bot = (tracker.positions[0][0], tracker.positions[0][1] - len(tracker.positions))
         xy_left = (tracker.positions[0][0] - len(tracker.positions), tracker.positions[0][1])
         xy_right = (tracker.positions[0][0] + len(tracker.positions), tracker.positions[0][1])
-        top, sq_top, top_positions = get_sad(tracker, xy_top)
-        bot, sq_bot, bot_positions = get_sad(tracker, xy_bot)
-        left, sq_left, left_positions = get_sad(tracker, xy_left)
-        right, sq_right, right_positions = get_sad(tracker, xy_right)
+        top, sq_top, top_positions = get_sad(xy_top)
+        bot, sq_bot, bot_positions = get_sad(xy_bot)
+        left, sq_left, left_positions = get_sad(xy_left)
+        right, sq_right, right_positions = get_sad(xy_right)
 
         if top > bot and top > left and top > right:
             create_tracker(tracker, sq_top, top_positions)

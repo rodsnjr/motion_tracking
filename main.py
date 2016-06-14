@@ -71,6 +71,10 @@ def track(trackers, frame, alg=1):
         new_trackers = tracking.nearest_points(trackers, frame)
         new_frame = draw_trackers(new_trackers, frame)
         return new_frame
+    elif alg == 2:
+        new_trackers = tracking.image_comparsion(trackers, frame)
+        new_frame = draw_trackers(new_trackers, frame)
+        return new_frame
 
 
 def main():

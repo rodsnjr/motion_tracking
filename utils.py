@@ -2,46 +2,60 @@ import numpy as np
 import math as math
 
 # KN for Kernels
-KN_ISOLATED_POINTS = np.array([[-1,-1,-1], [-1, 8, -1], [-1,-1,-1]])
+# KN_ISOLATED_POINTS = np.array([[-1,-1,-1], [-1, 8, -1], [-1,-1,-1]])
 
 
 class Tracker(object):
-    def __init__(self, positions, index):
+    def __init__(self, positions, index, tracking=True, pixels=None):
         self.positions = positions
         self.index = index
+        self.tracking = tracking
+        self.pixels = pixels
 
     def middle(self):
         mid = len(self.positions) // 2
         return self.positions[mid]
 
+    def noise(self):
+        return len(self.positions) < 30
+
     def color(self):
         if self.index == 0:
-            return (0, 0, 0)
+            return 0, 0, 0
         elif self.index == 1:
-            return (255, 0, 0)
+            return 255, 0, 0
         elif self.index == 2:
-            return (0, 255, 0)
+            return 0, 255, 0
         elif self.index == 3:
-            return (0, 0, 255)
+            return 0, 0, 255
         elif self.index == 4:
-            return (255,255,0)
+            return 255, 255, 0
         elif self.index == 5:
-            return (255,0,255)
+            return 255, 0, 255
         elif self.index == 6:
-            return (0,255,255)
+            return 0, 255, 255
         elif self.index == 7:
-            return (80,120,0)
+            return 80, 120, 0
         elif self.index == 8:
-            return (120,0,80)
+            return 120, 0, 80
         elif self.index == 9:
-            return (80,0,255)
+            return 80, 0, 255
         else:
-            return (0, 50, 50)
+            return 0, 50, 50
 
     def __eq__(self, other):
         self.positions.sort()
         other.positions.sort()
         return self.positions == other.positions
+
+    def __lt__(self, other):
+        return self.middle()[0] < other.middle()[0]
+
+    def stop_tracking(self):
+        self.tracking = False
+
+    def start_tracking(self):
+        self.tracking = True
 
 
 # based on flood fill with a queue
@@ -95,15 +109,6 @@ def tracker_positions(frame, xy):
 
     return filled
 
-
-# Calculate the euclidean distance between two tuple points
-# Being a (x, y) tuple
-def euclidean_dist(a, b):
-    x = a[0] - b[0]
-    y = a[1] - b[1]
-    return math.sqrt(x * x + y * y)
-
-
 # Expose all white trackers of the frame
 def expose_trackers(frame):
     # Start by slicing the 3 dimension image
@@ -111,10 +116,10 @@ def expose_trackers(frame):
 
     # blur the image to remove noise
     # OpenCV Blur, probably faster
-    # import cv2
-    # dst = cv2.medianBlur(image, 3)
+    import cv2
+    dst = cv2.medianBlur(image, 3)
     # My simple median_blur
-    dst = median_blur(image)
+    # dst = median_blur(image)
 
     dst = np_thresh_segmentation(dst)
 
@@ -153,17 +158,18 @@ def median_blur(src, median_size=3):
 
 
 # Threshold segmentation using numpy
-def np_thresh_segmentation(src, threshold = 230, color1 = 0, color2 = 255):
-    # Everyone below 220 becomes black
-    src[src < threshold] = color1
-    # Everyone above 220 becomes white
-    src[src > threshold] = color2
-    return src
+def np_thresh_segmentation(src, threshold=230, color1=0, color2=255):
+    dst = src.copy()
+    # Everyone below threshold becomes black
+    dst[dst < threshold] = color1
+    # Everyone above threshold becomes white
+    dst[dst > threshold] = color2
+    return dst
 
 
 # Threshold segmentation, iterates over the image and change the colors
 # above the threshold to color1, and below to color2
-def thresh_segmentation(src, threshold = 230, color1 = 0, color2 = 255):
+def thresh_segmentation(src, threshold=230, color1=0, color2=255):
     for row in src:
         for x, col in enumerate(row):
                 if col > threshold:
@@ -173,19 +179,25 @@ def thresh_segmentation(src, threshold = 230, color1 = 0, color2 = 255):
     return src
 
 
-def find_trackers_1(frame):
+def find_trackers_1(frame, frames_square_size=0):
+
     image = expose_trackers(frame)
 
-    # slice the images to only intensity dimensions
     trackers = []
     i = 0
+
     for y, row in enumerate(image):
         for x, col in enumerate(row):
             if col == 255:
                 find = tracker_positions(image, (x, y))
-                tracker = Tracker(find, i)
+
+                if frames_square_size > 0:
+                    tracker = Tracker(find, i, True, get_square(frame, find.positions[0], frames_square_size))
+                else:
+                    tracker = Tracker(find, i)
+
                 i += 1
-                if tracker not in trackers:
+                if tracker not in trackers and not tracker.noise():
                     trackers.append(tracker)
 
     return trackers
@@ -194,7 +206,7 @@ def find_trackers_1(frame):
 def find_trackers(image):
     image = expose_trackers(image)
 
-    #slice the images to only intensity dimensions
+    # slice the images to only intensity dimensions
     image = image[:, :, 1]
     # Get all white space coordinates
     whites = np.transpose(np.nonzero(image))
@@ -214,6 +226,45 @@ def find_trackers(image):
             values.append((xy[1], xy[0]))
 
     return values
+
+
+def get_square(frame, xy, size):
+    sx = xy[0]
+    sy = xy[1]
+    square = np.empty((size, size))
+    x = 0
+    y = 0
+    while sy < xy[1] + size:
+        while sx < xy[0] + size:
+            square[y][x] = frame[sy][sx]
+            sx += 1
+            x += 1
+        y += 1
+        sy += 1
+    return square
+
+
+def get_square_positions(frame, xy, size):
+    sx = xy[0]
+    sy = xy[1]
+    square = np.empty((size, size))
+    x = 0
+    y = 0
+    pos = []
+    while sy < xy[1] + size:
+        while sx < xy[0] + size:
+            square[y][x] = frame[sy][sx]
+            pos.append((sx, sy))
+            sx += 1
+            x += 1
+        y += 1
+        sy += 1
+    return square, pos
+
+
+def sad(p1, p2):
+    import distances
+    return distances.manhattan_distance(p1.flat(), p2.flat())
 
 
 # Array, ex [[1,2,3], [4,3,1], [4,4,4]]

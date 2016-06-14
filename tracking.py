@@ -1,0 +1,134 @@
+import utils
+
+
+def nearest_points(trackers, next_frame):
+    # create the tracker from current position
+    # using the flood fill technique
+    def create_tracker(pos, current_tracker):
+        positions = utils.tracker_positions(next_frame, pos)
+        n_tracker = utils.Tracker(positions, current_tracker.index, current_tracker.tracking)
+        if not n_tracker .noise():
+            new_trackers.append(n_tracker)
+            return True
+        return False
+
+    def square_search(xy, current_tracker):
+        threshold = len(current_tracker.positions) // 2
+        i = 1
+
+        x = xy[0]
+        y = xy[1]
+
+        while i < threshold:
+            if next_frame[y][x - i] == 255:
+                return x - i, y
+            if next_frame[y][x + i] == 255:
+                return x + i, y
+            elif next_frame[y - i][x + i] == 255:
+                return x + i, y - i
+            elif next_frame[y + i][x + i] == 255:
+                return x + i, y + i
+            elif next_frame[y - i][x - i] == 255:
+                return x - i, y - i
+            elif next_frame[y + i][x - i] == 255:
+                return x - i, y + i
+            elif next_frame[y + i][x] == 255:
+                return x, y + i
+            elif next_frame[y - i][x] == 255:
+                return x, y - i
+            i += 1
+
+        return False
+
+    new_trackers = []
+    # Tira a terceira dimensão, deixando
+    # apenas as intensidades no frame
+    next_frame = utils.expose_trackers(next_frame)
+    # Três estratégias, primeiramente busca a partir do meio
+    # dos marcadores do frame antigo
+    for tracker in trackers:
+        xy = tracker.middle()
+        if next_frame[xy[1]][xy[0]] == 255:
+            create_tracker(xy, tracker)
+        # Caso não encontrar procura todos os pontos do marcador antigo ...
+        else:
+            found = False
+            for xy in tracker.positions:
+                if next_frame[xy[1]][xy[0]] == 255:
+                    if create_tracker(xy, tracker):
+                        found = True
+                        break
+            # Caso não encontrar procurar os pontos próximos
+            """if not found:
+                threshold = len(tracker.positions) // 2
+                xy = tracker.middle()
+                # Procura nas quatro direções
+                bot = square_search((xy[1] - threshold, xy[0]), tracker)
+                if bot:
+                    if create_tracker(bot, tracker):
+                        break
+
+                top = square_search((xy[1] + threshold, xy[0]), tracker)
+                if top:
+                    if create_tracker(top, tracker):
+                        break
+
+                left = square_search((xy[1], xy[0] - threshold), tracker)
+                if left:
+                    if create_tracker(left, tracker):
+                        break
+
+                right = square_search((xy[1], xy[0] + threshold), tracker)
+                if right:
+                    if create_tracker(right, tracker):
+                        break
+            """
+    sorted(new_trackers)
+    return new_trackers
+
+
+# might assume that each tracker has its own pixels as a square
+# else set the oldFrame parameter
+def image_comparsion(trackers, next_frame, oldFrame=None):
+    """
+    1- Para cada marcador fazer a comparação da soma de diferenças absolutas
+
+    2- A partir do square(array quadrado em volta do ponto) atual de cada marcador
+       checar o sad nas quatro mediações(acima, abaixo, na esquerda e na direita)
+
+    3- O maior SAD deverá ser onde está a nova posição do marcador
+    """
+    # Create tracker
+    def create_tracker(current_tracker, square, positions):
+        pass
+
+    def get_sad(current_tracker, position):
+        # TODO Definir o tamanho
+        # por enquanto fica 6x6
+        square, positions = utils.get_square_positions(next_frame, position, 6)
+        sad = utils.sad(tracker.pixels, square)
+        return sad, square, positions
+
+    new_trackers = []
+
+    for tracker in trackers:
+        # TODO pegar os arrays nos lugares corretos
+        xy_top = (tracker.positions[0][0], tracker.positions[0][1] + len(tracker.positions))
+        xy_bot = (tracker.positions[0][0], tracker.positions[0][1] - len(tracker.positions))
+        xy_left = (tracker.positions[0][0] - len(tracker.positions), tracker.positions[0][1])
+        xy_right = (tracker.positions[0][0] + len(tracker.positions), tracker.positions[0][1])
+        top, sq_top, top_positions = get_sad(tracker, xy_top)
+        bot, sq_bot, bot_positions = get_sad(tracker, xy_bot)
+        left, sq_left, left_positions = get_sad(tracker, xy_left)
+        right, sq_right, right_positions = get_sad(tracker, xy_right)
+
+        if top > bot and top > left and top > right:
+            create_tracker(tracker, sq_top, top_positions)
+        elif bot > top and bot > left and bot > right:
+            create_tracker(tracker, sq_bot, bot_positions)
+        elif left > top and left > bot and left > right:
+            create_tracker(tracker, sq_left, left_positions)
+        elif right > top and right > bot and right > left:
+            create_tracker(tracker, sq_right, right_positions)
+
+    return new_trackers

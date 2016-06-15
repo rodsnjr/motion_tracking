@@ -2,6 +2,7 @@ import cv2
 import utils
 import tracking
 
+
 def open_video():
     return cv2.VideoCapture('videos/VideoBike.avi')
 
@@ -9,7 +10,7 @@ def open_video():
 def find_trackers_frame1(cap):
     ret, frame = cap.read()
     # Usando flood fill
-    trackers = utils.find_trackers_1(frame)
+    trackers = utils.find_trackers_1(frame, frames_square_size=6)
     frame = draw_trackers(trackers, frame)
     return trackers, frame
 
@@ -90,7 +91,7 @@ def main():
         if not stop:
             ret, frame = cap.read()
             if ret:
-                new_frame = track(trackers, frame)
+                new_frame = track(trackers, frame, alg=2)
                 cv2.imshow('frame', new_frame)
                 index += 1
 

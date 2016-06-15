@@ -111,22 +111,23 @@ def image_comparsion(trackers, next_frame, oldFrame=None, default_size=6):
     new_trackers = []
 
     for tracker in trackers:
-        xy_top = (tracker.positions[0][0], tracker.positions[0][1] + len(tracker.positions))
-        xy_bot = (tracker.positions[0][0], tracker.positions[0][1] - len(tracker.positions))
-        xy_left = (tracker.positions[0][0] - len(tracker.positions), tracker.positions[0][1])
-        xy_right = (tracker.positions[0][0] + len(tracker.positions), tracker.positions[0][1])
+        xy = tracker.middle()
+        xy_top = (xy[0], xy[1] + 4)
+        xy_bot = (xy[0], xy[1] - 4)
+        xy_left = (xy[0] - 4, xy[1])
+        xy_right = (xy[0] + 4, xy[1])
         top, sq_top, top_positions = get_sad(xy_top)
         bot, sq_bot, bot_positions = get_sad(xy_bot)
         left, sq_left, left_positions = get_sad(xy_left)
         right, sq_right, right_positions = get_sad(xy_right)
 
-        if top > bot and top > left and top > right:
+        if top < bot and top < left and top < right:
             create_tracker(tracker, sq_top, top_positions)
-        elif bot > top and bot > left and bot > right:
+        elif bot < top and bot < left and bot < right:
             create_tracker(tracker, sq_bot, bot_positions)
-        elif left > top and left > bot and left > right:
+        elif left < top and left < bot and left < right:
             create_tracker(tracker, sq_left, left_positions)
-        elif right > top and right > bot and right > left:
+        elif right < top and right < bot and right < left:
             create_tracker(tracker, sq_right, right_positions)
 
     return new_trackers

@@ -109,6 +109,7 @@ def tracker_positions(frame, xy):
 
     return filled
 
+
 # Expose all white trackers of the frame
 def expose_trackers(frame):
     # Start by slicing the 3 dimension image
@@ -122,6 +123,14 @@ def expose_trackers(frame):
     # dst = median_blur(image)
 
     dst = np_thresh_segmentation(dst)
+
+    return dst
+
+
+# Expose all white trackers of the frame
+def expose_trackers_square(frame):
+
+    dst = np_thresh_segmentation(frame)
 
     return dst
 
@@ -192,7 +201,7 @@ def find_trackers_1(frame, frames_square_size=0):
                 find = tracker_positions(image, (x, y))
 
                 if frames_square_size > 0:
-                    tracker = Tracker(find, i, True, get_square(frame, find.positions[0], frames_square_size))
+                    tracker = Tracker(find, i, True, get_square(frame, find[0], frames_square_size))
                 else:
                     tracker = Tracker(find, i)
 
@@ -231,41 +240,51 @@ def find_trackers(image):
 def get_square(frame, xy, size):
     sx = xy[0]
     sy = xy[1]
-    square = np.empty((size, size))
+    square = np.zeros((size, size))
     x = 0
     y = 0
     while sy < xy[1] + size:
         while sx < xy[0] + size:
-            square[y][x] = frame[sy][sx]
+            square[y][x] = frame[sy][sx][1]
             sx += 1
             x += 1
         y += 1
         sy += 1
+        sx = xy[0]
+        x = 0
     return square
 
 
 def get_square_positions(frame, xy, size):
     sx = xy[0]
     sy = xy[1]
-    square = np.empty((size, size))
+    square = np.zeros((size, size))
     x = 0
     y = 0
     pos = []
     while sy < xy[1] + size:
         while sx < xy[0] + size:
-            square[y][x] = frame[sy][sx]
+            pixel = frame[sy][sx][1]
+            square[y][x] = pixel
+            # if pixel >= 230:
             pos.append((sx, sy))
             sx += 1
             x += 1
         y += 1
         sy += 1
+        sx = xy[0]
+        x = 0
+
     return square, pos
 
 
 def sad(p1, p2):
     import distances
-    return distances.manhattan_distance(p1.flat(), p2.flat())
+    sad = 0
+    for row, row1 in zip(p1, p2):
+        sad += distances.manhattan_distance(row, row1)
 
+    return sad
 
 # Array, ex [[1,2,3], [4,3,1], [4,4,4]]
 # Central point 3

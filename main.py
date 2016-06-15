@@ -71,11 +71,11 @@ def track(trackers, frame, alg=1):
     if alg == 1:
         new_trackers = tracking.nearest_points(trackers, frame)
         new_frame = draw_trackers(new_trackers, frame)
-        return new_frame
+        return new_frame, new_trackers
     elif alg == 2:
         new_trackers = tracking.image_comparsion(trackers, frame)
         new_frame = draw_trackers(new_trackers, frame)
-        return new_frame
+        return new_frame, new_trackers
 
 
 def main():
@@ -91,7 +91,7 @@ def main():
         if not stop:
             ret, frame = cap.read()
             if ret:
-                new_frame = track(trackers, frame, alg=2)
+                new_frame, trackers = track(trackers, frame, alg=2)
                 cv2.imshow('frame', new_frame)
                 index += 1
 

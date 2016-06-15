@@ -17,7 +17,7 @@ class Tracker(object):
         return self.positions[mid]
 
     def noise(self):
-        return len(self.positions) < 30
+        return len(self.positions) < 1
 
     def color(self):
         if self.index == 0:
@@ -266,8 +266,8 @@ def get_square_positions(frame, xy, size):
         while sx < xy[0] + size:
             pixel = frame[sy][sx][1]
             square[y][x] = pixel
-            # if pixel >= 230:
-            pos.append((sx, sy))
+            if pixel >= 230:
+                pos.append((sx, sy))
             sx += 1
             x += 1
         y += 1

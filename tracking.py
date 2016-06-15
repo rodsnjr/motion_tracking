@@ -101,7 +101,8 @@ def image_comparsion(trackers, next_frame, oldFrame=None, default_size=6):
     # Create tracker
     def create_tracker(current_tracker, square, positions):
         n_tracker = utils.Tracker(positions, current_tracker.index, current_tracker.tracking, square)
-        new_trackers.append(n_tracker)
+        if not n_tracker.noise():
+            new_trackers.append(n_tracker)
 
     def get_sad(position):
         square, positions = utils.get_square_positions(next_frame, position, default_size)

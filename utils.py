@@ -213,6 +213,7 @@ def find_trackers_1(frame, frames_square_size=0):
 
 
 def find_trackers(image):
+    import distances
     image = expose_trackers(image)
 
     # slice the images to only intensity dimensions
@@ -229,7 +230,7 @@ def find_trackers(image):
         else:
             nxt = whites[i-1]
 
-        dist = euclidean_dist((xy[0], xy[1]), (nxt [0], nxt [1]))
+        dist = distances.euclidean_dist((xy[0], xy[1]), (nxt[0], nxt[1]))
 
         if dist > 10:
             values.append((xy[1], xy[0]))
@@ -262,8 +263,12 @@ def get_square_positions(frame, xy, size):
     x = 0
     y = 0
     pos = []
-    while sy < xy[1] + size:
-        while sx < xy[0] + size:
+
+    y_size = xy[1] + size if frame.shape[0] < xy[1] + size else xy[1] + size-1
+    x_size = xy[0] + size if frame.shape[1] < xy[0] + size else xy[0] + size-1
+
+    while sy < y_size:
+        while sx < x_size:
             pixel = frame[sy][sx][1]
             square[y][x] = pixel
             if pixel >= 230:

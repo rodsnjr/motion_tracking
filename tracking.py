@@ -104,6 +104,17 @@ def image_comparsion(trackers, next_frame, oldFrame=None, default_size=6):
         if not n_tracker.noise():
             new_trackers.append(n_tracker)
 
+    def recursive_search(sxy, current_tracker, size):
+
+        square, positions = utils.get_square_positions(next_frame, sxy, size)
+
+        if len(positions) > 0 or size > 30:
+            return create_tracker(current_tracker, square, positions)
+
+        recursive_search(sxy, current_tracker, size+1)
+
+
+
     def get_sad(position):
         square, positions = utils.get_square_positions(next_frame, position, default_size)
         sad = utils.sad(tracker.pixels, square)
@@ -117,18 +128,32 @@ def image_comparsion(trackers, next_frame, oldFrame=None, default_size=6):
         xy_bot = (xy[0], xy[1] - 4)
         xy_left = (xy[0] - 4, xy[1])
         xy_right = (xy[0] + 4, xy[1])
+
         top, sq_top, top_positions = get_sad(xy_top)
         bot, sq_bot, bot_positions = get_sad(xy_bot)
         left, sq_left, left_positions = get_sad(xy_left)
         right, sq_right, right_positions = get_sad(xy_right)
 
         if top < bot and top < left and top < right:
-            create_tracker(tracker, sq_top, top_positions)
+            if len(top_positions) > 0:
+                create_tracker(tracker, sq_top, top_positions)
+            else:
+                recursive_search(xy_top,tracker, default_size+1)
         elif bot < top and bot < left and bot < right:
-            create_tracker(tracker, sq_bot, bot_positions)
+            if len(bot_positions) > 0:
+                create_tracker(tracker, sq_bot, bot_positions)
+            else:
+                recursive_search(xy_bot, tracker, default_size+1)
         elif left < top and left < bot and left < right:
-            create_tracker(tracker, sq_left, left_positions)
+            if len(left_positions) > 0:
+                create_tracker(tracker, sq_left, left_positions)
+            else:
+                recursive_search(xy_left,tracker, default_size+1)
         elif right < top and right < bot and right < left:
-            create_tracker(tracker, sq_right, right_positions)
+            if len(right_positions) > 0:
+                create_tracker(tracker, sq_right, right_positions)
+            else:
+                recursive_search(xy_right, tracker, default_size+1)
 
+    sorted(new_trackers)
     return new_trackers

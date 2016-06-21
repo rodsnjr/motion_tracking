@@ -11,6 +11,7 @@ class Tracker(object):
         self.index = index
         self.tracking = tracking
         self.pixels = pixels
+        self.closest = None
 
     def middle(self):
         mid = len(self.positions) // 2
@@ -43,6 +44,12 @@ class Tracker(object):
         else:
             return 0, 50, 50
 
+    def stop_tracking(self):
+        self.tracking = False
+
+    def start_tracking(self):
+        self.tracking = True
+
     def __eq__(self, other):
         self.positions.sort()
         other.positions.sort()
@@ -50,12 +57,6 @@ class Tracker(object):
 
     def __lt__(self, other):
         return self.middle()[0] < other.middle()[0]
-
-    def stop_tracking(self):
-        self.tracking = False
-
-    def start_tracking(self):
-        self.tracking = True
 
 
 # based on flood fill with a queue
@@ -288,7 +289,6 @@ def sad(p1, p2):
     sad = 0
     for row, row1 in zip(p1, p2):
         sad += distances.manhattan_distance(row, row1)
-
     return sad
 
 # Array, ex [[1,2,3], [4,3,1], [4,4,4]]

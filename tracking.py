@@ -1,12 +1,14 @@
 import utils
+from distances import *
 
 
 def find_trackers(trackers, next_frame):
     # create the tracker from current position
     # using the flood fill technique
-    def create_tracker(pos, current_tracker):
+    def create_tracker(pos, current_tracker, distance):
         positions = utils.tracker_positions(next_frame, pos)
         n_tracker = utils.Tracker(positions, current_tracker.index, current_tracker.tracking)
+        n_tracker.distance = distance
         if not n_tracker .noise():
             new_trackers.append(n_tracker)
             return True
@@ -17,39 +19,65 @@ def find_trackers(trackers, next_frame):
     # apenas as intensidades no frame
     next_frame = utils.expose_trackers(next_frame)
 
-    for tracker in trackers:
+    size = len(trackers)
+
+    for index, tracker in enumerate(trackers):
         xy = tracker.middle()
         if next_frame[xy[1]][xy[0]] == 255:
-            create_tracker(xy, tracker)
+            distance = 0
+            if index+1 < size:
+                distance = euclidean_dist(xy, trackers[index+1].middle())
+            create_tracker(xy, tracker, distance)
         else:
             for xy in tracker.positions:
                 if next_frame[xy[1]][xy[0]] == 255:
-                    create_tracker(xy, tracker)
+                    distance = 0
+                    if index + 1 < size:
+                        distance = euclidean_dist(xy, trackers[index + 1].middle())
+                    create_tracker(xy, tracker, distance)
+                    break
 
     sorted(new_trackers)
     return new_trackers
 
 
-def nearest_trackers(trackers):
-    import distances
+def nearest_point(trackers, next_frame):
+    import numpy as np
+    """
+    :param trackers: the trackers list obtained from the previous frame
+    :param next_frame: the next actual frame
+    :return: a new tracker list containing the trackers from this frame
+    """
 
+    def create_tracker(current_tracker, start_position):
+        square, positions = utils.get_square_positions(next_frame, start_position, 6)
+        n_tracker = utils.Tracker(positions, current_tracker.index, current_tracker.tracking, square)
+        if not n_tracker.noise():
+            new_trackers.append(n_tracker)
+
+    exposed_frame = utils.expose_trackers(next_frame)
+
+    trackers_positions = np.transpose(np.nonzero(exposed_frame))
+
+    new_trackers = []
     for tracker in trackers:
-        lowest_distance = 111919191
-        closest_tracker = None
+        lowest_distance = 10000
+        for position in trackers_positions:
+            eq_tuple = (position[1], position[0])
+            new_distance = euclidean_dist(tracker.middle(), eq_tuple)
+            if new_distance < lowest_distance:
+                lowest_distance = new_distance
+                tracker_position = eq_tuple
+        # now i know that here is the tracker same
+        # that i'm looking for
+        create_tracker(tracker, tracker_position)
 
-        for tracker1 in trackers:
-            if tracker1 is not tracker:
-                new_dist = distances.euclidean_dist(tracker.middle(), tracker1.middle())
-                if new_dist < lowest_distance:
-                    lowest_distance = new_dist
-                    closest_tracker = tracker1
-
-        tracker.closest = closest_tracker
+    return new_trackers
 
 
 # might assume that each tracker has its own pixels as a square
 # else set the oldFrame parameter
-def image_comparsion(trackers, next_frame, oldFrame=None, default_size=6):
+def image_comparison(trackers, next_frame, oldFrame=None, default_size=6):
     """
     1- Para cada marcador fazer a comparação da soma de diferenças absolutas
 
@@ -73,17 +101,17 @@ def image_comparsion(trackers, next_frame, oldFrame=None, default_size=6):
 
     def get_sad(position):
         square, positions = utils.get_square_positions(next_frame, position, default_size)
-        sad = utils.sad(tracker.pixels, square)
+        sad = utils.sad(square, tracker.pixels)
         return sad, square, positions
 
     new_trackers = []
 
     for tracker in trackers:
         xy = tracker.middle()
-        xy_top = (xy[0], xy[1] + 2)
-        xy_bot = (xy[0], xy[1] - 2)
-        xy_left = (xy[0] - 2, xy[1])
-        xy_right = (xy[0] + 2, xy[1])
+        xy_top = (xy[0], xy[1] + 1)
+        xy_bot = (xy[0], xy[1] - 1)
+        xy_left = (xy[0] - 1, xy[1])
+        xy_right = (xy[0] + 1, xy[1])
 
         middle, sq, pos = get_sad(xy)
         top, sq_top, top_positions = get_sad(xy_top)
@@ -100,7 +128,7 @@ def image_comparsion(trackers, next_frame, oldFrame=None, default_size=6):
             if len(top_positions) > 0:
                 create_tracker(tracker, sq_top, top_positions)
             else:
-                recursive_search(xy_top,tracker, default_size+1)
+                recursive_search(xy_top, tracker, default_size+1)
         elif bot < left and bot < right:
             if len(bot_positions) > 0:
                 create_tracker(tracker, sq_bot, bot_positions)

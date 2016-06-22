@@ -3,22 +3,6 @@ import utils
 import tracking
 
 
-def build_boy(trackers):
-    arms = []
-    body = []
-    legs = trackers[11:]
-    trackers = trackers[:11]
-
-    for tracker in trackers:
-        if tracker.middle() > (260, 110):
-            arms.append(tracker)
-        elif tracker.middle() < (220, 250):
-            body.append(tracker)
-
-    variable = {'legs': legs, 'body': body, 'arms': arms}
-    return variable
-
-
 def open_video():
     return cv2.VideoCapture('videos/VideoBike.avi')
 
@@ -31,27 +15,14 @@ def find_trackers_frame1(cap):
     return trackers, frame
 
 
-def draw_with_joint(items, frame):
-    for index, tracker in enumerate(items):
-        if tracker.tracking:
-            if index > 0:
-                cv2.line(frame, items[index - 1].middle(), tracker.middle(), (255, 0, 0), 5)
-            frame = cv2.circle(frame, tracker.middle(), 5, tracker.color(), 10)
-
-
 def draw_trackers(trackers, frame, joints=False):
-    if len(trackers) > 10 and joints:
-        body = build_boy(trackers)
-        draw_with_joint(body['arms'], frame)
-        draw_with_joint(body['body'], frame)
-        draw_with_joint(body['legs'], frame)
-    else:
-        for xy in trackers:
-            if xy.tracking:
-                if xy.closest is not None:
-                    cv2.line(frame, xy.middle(), xy.closest.middle(), (255, 0, 0), 5)
-                    cv2.line(frame, xy.closest.middle(), xy.closest.closest.middle(), (255, 0, 0), 5)
-                frame = cv2.circle(frame, xy.middle(), 10, xy.color(), 5)
+    size = len(trackers)
+    for index, xy in enumerate(trackers):
+        if xy.tracking:
+            if index+1 < size:
+                cv2.line(frame, xy.middle(), trackers[index+1].middle(), (255, 0, 0), 2)
+            frame = cv2.circle(frame, xy.middle(), 10, xy.color(), 5)
+
     return frame
 
 
@@ -100,12 +71,12 @@ def key_events(key, trackers):
 
 def track(trackers, frame, alg=1):
     if alg == 1:
-        new_trackers = tracking.find_trackers(trackers, frame)
-        tracking.nearest_trackers(new_trackers)
+        # new_trackers = tracking.find_trackers(trackers, frame)
+        new_trackers = tracking.nearest_point(trackers, frame)
         new_frame = draw_trackers(new_trackers, frame)
         return new_frame, new_trackers
     elif alg == 2:
-        new_trackers = tracking.image_comparsion(trackers, frame)
+        new_trackers = tracking.image_comparison(trackers, frame)
         new_frame = draw_trackers(new_trackers, frame)
         return new_frame, new_trackers
 
@@ -123,7 +94,7 @@ def main():
         if not stop:
             ret, frame = cap.read()
             if ret:
-                new_frame, trackers = track(trackers, frame, alg=1)
+                new_frame, trackers = track(trackers, frame, alg=2)
                 cv2.imshow('frame', new_frame)
                 index += 1
             else:

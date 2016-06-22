@@ -1,8 +1,4 @@
 import numpy as np
-import math as math
-
-# KN for Kernels
-# KN_ISOLATED_POINTS = np.array([[-1,-1,-1], [-1, 8, -1], [-1,-1,-1]])
 
 
 class Tracker(object):
@@ -11,7 +7,7 @@ class Tracker(object):
         self.index = index
         self.tracking = tracking
         self.pixels = pixels
-        self.closest = None
+        self.distance = 0
 
     def middle(self):
         mid = len(self.positions) // 2
@@ -57,6 +53,12 @@ class Tracker(object):
 
     def __lt__(self, other):
         return self.middle()[0] < other.middle()[0]
+
+
+class Anatomic_Point():
+    def __init__(self, image, trackers):
+        self.image = image
+        self.trackers = trackers
 
 
 # based on flood fill with a queue
@@ -240,13 +242,17 @@ def find_trackers(image):
 
 
 def get_square(frame, xy, size):
-    sx = xy[0]
-    sy = xy[1]
-    square = np.zeros((size, size))
+    sx = xy[0] - size
+    sy = xy[1] - size
+    square = np.zeros((size * 2, size * 2))
     x = 0
     y = 0
-    while sy < xy[1] + size:
-        while sx < xy[0] + size:
+
+    y_size = xy[1] + size if frame.shape[0] < xy[1] + size else xy[1] + size-1
+    x_size = xy[0] + size if frame.shape[1] < xy[0] + size else xy[0] + size-1
+
+    while sy < y_size:
+        while sx < x_size:
             square[y][x] = frame[sy][sx][1]
             sx += 1
             x += 1
@@ -258,9 +264,9 @@ def get_square(frame, xy, size):
 
 
 def get_square_positions(frame, xy, size):
-    sx = xy[0]
-    sy = xy[1]
-    square = np.zeros((size, size))
+    sx = xy[0] - size
+    sy = xy[1] - size
+    square = np.zeros((size * 2, size * 2))
     x = 0
     y = 0
     pos = []

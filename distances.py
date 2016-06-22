@@ -9,5 +9,11 @@ def euclidean_dist(a, b):
     return sqrt(x * x + y * y)
 
 
+def single_manhattan(a, b):
+    x = abs(a[0] - b[0])
+    y = abs(a[1] - b[1])
+    return x - y
+
+
 def manhattan_distance(x, y):
     return sum(abs(a-b) for a, b in zip(x, y))

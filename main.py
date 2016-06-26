@@ -15,14 +15,22 @@ def find_trackers_frame1(cap):
     return trackers, frame
 
 
-def draw_trackers(trackers, frame, joints=False):
+def draw_trackers(trackers, frame):
     size = len(trackers)
     for index, xy in enumerate(trackers):
         if xy.tracking:
-            if index+1 < size:
-                cv2.line(frame, xy.middle(), trackers[index+1].middle(), (255, 0, 0), 2)
+            if index + 1 < size:
+                frame = cv2.line(frame, xy.middle(), trackers[index+1].middle(), (255, 0, 0), 2)
             frame = cv2.circle(frame, xy.middle(), 10, xy.color(), 5)
 
+    return frame
+
+
+def draw_trackers_vectors(vectors, frame):
+    for index, vector in enumerate(vectors):
+        frame = cv2.line(frame, vector.start, vector.direction, (255, 0, 0), 2)
+        frame = cv2.circle(frame, vector.start, 10, utils.color(index), 5)
+        frame = cv2.circle(frame, vector.direction, 10, utils.color(index + 1), 5)
     return frame
 
 
@@ -79,6 +87,15 @@ def track(trackers, frame, alg=1):
         new_trackers = tracking.image_comparison(trackers, frame)
         new_frame = draw_trackers(new_trackers, frame)
         return new_frame, new_trackers
+    elif alg == 3:
+        if type(trackers[0]) is utils.Vector:
+            new_trackers_vectors = tracking.model_based(trackers, frame)
+        else:
+            new_trackers = tracking.find_trackers(trackers, frame)
+            new_trackers_vectors = utils.trackers_vectors(new_trackers)
+
+        new_frame = draw_trackers_vectors(new_trackers_vectors, frame)
+        return new_frame, new_trackers_vectors
 
 
 def main():
@@ -94,7 +111,7 @@ def main():
         if not stop:
             ret, frame = cap.read()
             if ret:
-                new_frame, trackers = track(trackers, frame, alg=2)
+                new_frame, trackers = track(trackers, frame, alg=1)
                 cv2.imshow('frame', new_frame)
                 index += 1
             else:

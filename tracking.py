@@ -77,7 +77,7 @@ def nearest_point(trackers, next_frame):
 
 # might assume that each tracker has its own pixels as a square
 # else set the oldFrame parameter
-def image_comparison(trackers, next_frame, oldFrame=None, default_size=6):
+def image_comparison(trackers, next_frame, default_size=6):
     """
     1- Para cada marcador fazer a comparação da soma de diferenças absolutas
 
@@ -147,3 +147,30 @@ def image_comparison(trackers, next_frame, oldFrame=None, default_size=6):
 
     sorted(new_trackers)
     return new_trackers
+
+
+def model_based(vectors, next_frame):
+    """
+    Apontar um vetor de um ponto a outro, utilizar esse vetor para medir a distância esperada entre os marcadores
+
+    Como eu tenho a medida de distância, e o vetor eu posso utilizar o vetor apontado do ponto que o marcador 0 está,
+    para encontrar os demais marcadores, então eu só preciso utilizar algo simples pra encontrar o "marcador 0".
+
+    A ideia pode ser encontrar a partir dos pontos do "marcador 0" o mesmo (como já era feito em outro metodo),
+    e a partir do vetor do marcador 0 já grifado no frame anterior eu posso encontrar os outros
+    :param vectors:
+    :param next_frame:
+    :return:
+    """
+
+    new_vectors = []
+
+    exposed_frame = utils.expose_trackers(next_frame)
+
+    for index, vector in enumerate(vectors):
+        tracker1pos, tracker2pos = utils.find_trackers_vector(vector, exposed_frame)
+        vector = utils.create_vector(tracker1pos, tracker2pos)
+        if vector is not None:
+            new_vectors.append(vector)
+
+    return new_vectors

@@ -1,5 +1,6 @@
 *.avi
 blank
+todo.txt
 .idea/
 __pycache__/
 screenshots/

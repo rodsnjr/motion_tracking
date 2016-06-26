@@ -7,7 +7,6 @@ class Tracker(object):
         self.index = index
         self.tracking = tracking
         self.pixels = pixels
-        self.distance = 0
 
     def middle(self):
         mid = len(self.positions) // 2
@@ -17,28 +16,7 @@ class Tracker(object):
         return len(self.positions) < 1
 
     def color(self):
-        if self.index == 0:
-            return 0, 0, 0
-        elif self.index == 1:
-            return 255, 0, 0
-        elif self.index == 2:
-            return 0, 255, 0
-        elif self.index == 3:
-            return 0, 0, 255
-        elif self.index == 4:
-            return 255, 255, 0
-        elif self.index == 5:
-            return 255, 0, 255
-        elif self.index == 6:
-            return 0, 255, 255
-        elif self.index == 7:
-            return 80, 120, 0
-        elif self.index == 8:
-            return 120, 0, 80
-        elif self.index == 9:
-            return 80, 0, 255
-        else:
-            return 0, 50, 50
+        return color(self.index)
 
     def stop_tracking(self):
         self.tracking = False
@@ -55,10 +33,40 @@ class Tracker(object):
         return self.middle()[0] < other.middle()[0]
 
 
-class Anatomic_Point():
-    def __init__(self, image, trackers):
-        self.image = image
-        self.trackers = trackers
+class Vector(object):
+    def __init__(self, start, direction, size):
+        self.start = start
+        self.direction = direction
+        self.size = size
+        self.name = ""
+
+    def name_joint(self, name):
+        self.name = name
+
+
+def color(index):
+    if index == 0:
+        return 0, 0, 0
+    elif index == 1:
+        return 255, 0, 0
+    elif index == 2:
+        return 0, 255, 0
+    elif index == 3:
+        return 0, 0, 255
+    elif index == 4:
+        return 255, 255, 0
+    elif index == 5:
+        return 255, 0, 255
+    elif index == 6:
+        return 0, 255, 255
+    elif index == 7:
+        return 80, 120, 0
+    elif index == 8:
+        return 120, 0, 80
+    elif index == 9:
+        return 80, 0, 255
+    else:
+        return 0, 50, 50
 
 
 # based on flood fill with a queue
@@ -290,12 +298,101 @@ def get_square_positions(frame, xy, size):
     return square, pos
 
 
+def trackers_vectors(trackers):
+    """
+    From the trackers of a frame, generate a list of vectors
+    pointing towards each trackers pairs
+    :param trackers:
+    :return:
+    """
+    import distances
+
+    vectors = []
+    """
+    size = len(trackers)
+
+    if index + 1 < size:
+        direction = trackers[index + 1].middle()
+        distance = distances.euclidean_dist(tracker.middle(), direction)
+        vectors.append(Vector(tracker.middle(), direction, distance))
+    """
+
+    minor_dist = 1000
+    closest_tracker = 0
+    closed_dist = []
+
+    for index, tracker in enumerate(trackers):
+        for tracker1 in trackers:
+            if tracker1 == tracker:
+                continue
+            distance = distances.euclidean_dist(tracker.middle(), tracker1.middle())
+            if distance < minor_dist and distance not in closed_dist:
+                minor_dist = distance
+                closest_tracker = tracker1
+        if closest_tracker is not 0:
+            closed_dist.append(minor_dist)
+            direction = closest_tracker.middle()
+            vectors.append(Vector(tracker.middle(), direction, minor_dist))
+            minor_dist = 1000
+            closest_tracker = 0
+
+    return vectors
+
+
+def create_vector(tracker1_positions, tracker2_positions):
+    """
+    From the positions of two tracker1 create a vector
+    pointing to both of them
+    :param tracker1_positions:
+    :param tracker2_positions:
+    :return:
+    """
+    import distances
+    if len(tracker1_positions) > 0 and len(tracker2_positions) > 0:
+        tracker1_middle = tracker1_positions[len(tracker1_positions)//2]
+        tracker2_middle = tracker2_positions[len(tracker2_positions)//2]
+        distance = distances.euclidean_dist(tracker1_middle, tracker2_middle)
+        return Vector(tracker1_middle, tracker2_middle, distance)
+
+    return None
+
+
+def find_trackers_vector(vector, frame):
+    """
+    Look for the trackers that the vector might be linking
+    At the start of the vector we know that the trackers are
+    between the vector.
+    :param vector: the vectors from the previous frame
+    :param frame: the current frame
+    :return: the positions found from the vectors
+    """
+    def look_for(xy):
+        x_s = xy[0] - 8
+        y_s = xy[1] - 8
+        end_x = xy[0] + 8
+        end_y = xy[1] + 8
+        positions = []
+        while y_s < end_y:
+            while x_s < end_x:
+                if frame[y_s][x_s] >= 200:
+                    positions.append((x_s, y_s))
+                x_s += 1
+            y_s += 1
+            x_s = xy[0] - 8
+        return positions
+
+    positions1 = look_for(vector.start)
+    positions2 = look_for(vector.direction)
+
+    return positions1, positions2
+
+
 def sad(p1, p2):
     import distances
-    sad = 0
+    value = 0
     for row, row1 in zip(p1, p2):
-        sad += distances.manhattan_distance(row, row1)
-    return sad
+        value += distances.manhattan_distance(row, row1)
+    return value
 
 # Array, ex [[1,2,3], [4,3,1], [4,4,4]]
 # Central point 3

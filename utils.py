@@ -13,7 +13,7 @@ class Tracker(object):
         return self.positions[mid]
 
     def noise(self):
-        return len(self.positions) < 20
+        return len(self.positions) < 1
 
     def color(self):
         return color(self.index)

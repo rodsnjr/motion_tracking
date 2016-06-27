@@ -19,7 +19,7 @@ def find_trackers(trackers, next_frame, square=0):
     # apenas as intensidades no frame
     exposed_frame = utils.expose_trackers(next_frame)
 
-    for index, tracker in enumerate(trackers):
+    for tracker in trackers:
         xy = tracker.middle()
         if exposed_frame[xy[1]][xy[0]] == 255:
             create_tracker(xy, tracker)
@@ -29,7 +29,6 @@ def find_trackers(trackers, next_frame, square=0):
                     create_tracker(xy, tracker)
                     break
 
-    sorted(new_trackers)
     return new_trackers
 
 
@@ -90,7 +89,7 @@ def model_based(trackers, next_frame):
     vectors = utils.trackers_vectors(trackers)
     new_trackers = find_trackers(trackers, next_frame)
     new_vectors = utils.trackers_vectors(new_trackers)
-
+    """
     for vector in vectors:
         minor_dif = 1000
         closest_vector = None
@@ -100,7 +99,15 @@ def model_based(trackers, next_frame):
                 closest_vector = new_vector
                 minor_dif = dif
         if closest_vector is not None:
-            vector.start.index = closest_vector.start.index
-            vector.direction.index = closest_vector.direction.index
+            closest_vector.start.index = vector.start.index
+            closest_vector.direction.index = vector.direction.index
+
+    print("rastreando \n")
+
+    for tracker, tracker1 in zip(trackers, new_trackers):
+        print("old %d, new %d" % (tracker.index, tracker1.index))
+
+    print("\n")
+    """
 
     return new_trackers

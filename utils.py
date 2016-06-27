@@ -13,7 +13,7 @@ class Tracker(object):
         return self.positions[mid]
 
     def noise(self):
-        return len(self.positions) < 1
+        return len(self.positions) < 20
 
     def color(self):
         return color(self.index)
@@ -67,6 +67,14 @@ def color(index):
         return 80, 0, 255
     else:
         return 0, 50, 50
+
+
+# paint the tracker on the frame with it's color
+def paint_tracker(frame, tracker):
+    for position in tracker.positions:
+        x = position[0]
+        y = position[1]
+        frame[y][x] = tracker.color()
 
 
 # based on flood fill with a queue
@@ -250,9 +258,19 @@ def find_trackers(image):
 
 
 def get_square(frame, xy, size):
+    """
+    Gets a small square around the given position
+    :param frame: intensity frame, or common frame
+    :param xy: current position
+    :param size: square size in (size x size)
+    :return: a small square array around the given position in the given frame
+    """
     sx = xy[0] - size
     sy = xy[1] - size
-    square = np.zeros((size * 2, size * 2))
+    if len(frame.shape) > 2:
+        square = np.zeros((size * 2, size * 2, frame.shape[2]))
+    else:
+        square = np.zeros((size * 2, size * 2))
     x = 0
     y = 0
 
@@ -261,7 +279,7 @@ def get_square(frame, xy, size):
 
     while sy < y_size:
         while sx < x_size:
-            square[y][x] = frame[sy][sx][1]
+            square[y][x] = frame[sy][sx]
             sx += 1
             x += 1
         y += 1
@@ -274,7 +292,7 @@ def get_square(frame, xy, size):
 def get_square_positions(frame, xy, size):
     sx = xy[0] - size
     sy = xy[1] - size
-    square = np.zeros((size * 2, size * 2))
+
     x = 0
     y = 0
     pos = []
@@ -284,10 +302,7 @@ def get_square_positions(frame, xy, size):
 
     while sy < y_size:
         while sx < x_size:
-            pixel = frame[sy][sx][1]
-            square[y][x] = pixel
-            if pixel >= 230:
-                pos.append((sx, sy))
+            pos.append((sx, sy))
             sx += 1
             x += 1
         y += 1
@@ -295,7 +310,7 @@ def get_square_positions(frame, xy, size):
         sx = xy[0]
         x = 0
 
-    return square, pos
+    return pos
 
 
 def trackers_vectors(trackers):
@@ -308,33 +323,14 @@ def trackers_vectors(trackers):
     import distances
 
     vectors = []
-    """
+
     size = len(trackers)
 
-    if index + 1 < size:
-        direction = trackers[index + 1].middle()
-        distance = distances.euclidean_dist(tracker.middle(), direction)
-        vectors.append(Vector(tracker.middle(), direction, distance))
-    """
-
-    minor_dist = 1000
-    closest_tracker = 0
-    closed_dist = []
-
     for index, tracker in enumerate(trackers):
-        for tracker1 in trackers:
-            if tracker1 == tracker:
-                continue
+        if index + 1 < size:
+            tracker1 = trackers[index+1]
             distance = distances.euclidean_dist(tracker.middle(), tracker1.middle())
-            if distance < minor_dist and distance not in closed_dist:
-                minor_dist = distance
-                closest_tracker = tracker1
-        if closest_tracker is not 0:
-            closed_dist.append(minor_dist)
-            direction = closest_tracker.middle()
-            vectors.append(Vector(tracker.middle(), direction, minor_dist))
-            minor_dist = 1000
-            closest_tracker = 0
+            vectors.append(Vector(tracker, tracker1, distance))
 
     return vectors
 
@@ -389,10 +385,23 @@ def find_trackers_vector(vector, frame):
 
 def sad(p1, p2):
     import distances
-    value = 0
-    for row, row1 in zip(p1, p2):
-        value += distances.manhattan_distance(row, row1)
-    return value
+    if len(p1.shape) > 2:
+        value1 = 0
+        value2 = 0
+        value3 = 0
+        for row, row1 in zip(p1, p2):
+            value1 += distances.manhattan_distance(row[0], row1[0])
+            value2 += distances.manhattan_distance(row[1], row1[1])
+            value3 += distances.manhattan_distance(row[2], row1[2])
+
+        return abs(value1 - value2 - value3)
+
+    else:
+        value = 0
+        for row, row1 in zip(p1, p2):
+            value += distances.manhattan_distance(row, row1)
+        return value
+
 
 # Array, ex [[1,2,3], [4,3,1], [4,4,4]]
 # Central point 3

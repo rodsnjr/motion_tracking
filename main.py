@@ -11,7 +11,12 @@ def find_trackers_frame1(cap):
     ret, frame = cap.read()
     # Usando flood fill
     trackers = utils.find_trackers_1(frame, frames_square_size=6)
-    frame = draw_trackers(trackers, frame)
+
+    for tracker in trackers:
+        if not tracker.noise():
+            utils.paint_tracker(frame, tracker)
+
+    # frame = draw_trackers(trackers, frame)
     return trackers, frame
 
 
@@ -98,7 +103,40 @@ def track(trackers, frame, alg=1):
         return new_frame, new_trackers_vectors
 
 
-def main():
+def frame_1():
+
+    def repaint():
+        for tracker in trackers1:
+            if not tracker.noise():
+                utils.paint_tracker(frame, tracker)
+
+        return frame
+
+    cap = open_video()
+    trackers, frame1 = find_trackers_frame1(cap)
+
+    while cap.isOpened():
+        cv2.imshow('frame', frame1)
+        key = cv2.waitKey(1)
+        if key & 0xFF == ord('q'):
+            break
+        elif key & 0xFF == ord('w'):
+            ret, frame = cap.read()
+            trackers1 = tracking.nearest_point(trackers, frame)
+            frame1 = repaint()
+
+        elif key & 0xFF == ord('e'):
+            ret, frame = cap.read()
+            trackers1 = tracking.image_comparison(trackers, frame)
+            frame1 = repaint()
+
+        elif key & 0xFF == ord('r'):
+            ret, frame = cap.read()
+            trackers1 = tracking.model_based(trackers, frame)
+            frame1 = repaint()
+
+
+def play_video():
     cap = open_video()
     trackers, frame1 = find_trackers_frame1(cap)
     # cv2.imshow('frame', frame1)
@@ -130,4 +168,4 @@ def main():
     cap.release()
     cv2.destroyAllWindows()
 
-main()
+frame_1()

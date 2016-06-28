@@ -2,13 +2,12 @@ import utils
 from distances import *
 
 
-def find_trackers(trackers, next_frame):
+def simple_nearest_point(trackers, next_frame):
     # create the tracker from current position
     # using the flood fill technique
-    def create_tracker(pos, current_tracker, distance):
+    def create_tracker(pos, current_tracker):
         positions = utils.tracker_positions(next_frame, pos)
         n_tracker = utils.Tracker(positions, current_tracker.index, current_tracker.tracking)
-        n_tracker.distance = distance
         if not n_tracker .noise():
             new_trackers.append(n_tracker)
             return True
@@ -24,24 +23,18 @@ def find_trackers(trackers, next_frame):
     for index, tracker in enumerate(trackers):
         xy = tracker.middle()
         if next_frame[xy[1]][xy[0]] == 255:
-            distance = 0
-            if index+1 < size:
-                distance = euclidean_dist(xy, trackers[index+1].middle())
-            create_tracker(xy, tracker, distance)
+            create_tracker(xy, tracker)
         else:
             for xy in tracker.positions:
                 if next_frame[xy[1]][xy[0]] == 255:
-                    distance = 0
-                    if index + 1 < size:
-                        distance = euclidean_dist(xy, trackers[index + 1].middle())
-                    create_tracker(xy, tracker, distance)
+                    create_tracker(xy, tracker)
                     break
 
     sorted(new_trackers)
     return new_trackers
 
 
-def nearest_point(trackers, next_frame):
+def euclidean_nearest_point(trackers, next_frame):
     import numpy as np
     """
     :param trackers: the trackers list obtained from the previous frame

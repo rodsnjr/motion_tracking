@@ -79,11 +79,16 @@ def key_events(key, trackers):
 
 def track(trackers, frame, alg=1):
     if alg == 1:
-        # new_trackers = tracking.find_trackers(trackers, frame)
-        new_trackers = tracking.nearest_point(trackers, frame)
+        if type(trackers[0]) is utils.Vector:
+            trackers = utils.find_trackers_1(frame, frames_square_size=6)
+
+        new_trackers = tracking.simple_nearest_point(trackers, frame)
         new_frame = draw_trackers(new_trackers, frame)
         return new_frame, new_trackers
     elif alg == 2:
+        if type(trackers[0]) is utils.Vector:
+            trackers = utils.find_trackers_1(frame, frames_square_size=6)
+
         new_trackers = tracking.image_comparison(trackers, frame)
         new_frame = draw_trackers(new_trackers, frame)
         return new_frame, new_trackers
@@ -91,11 +96,47 @@ def track(trackers, frame, alg=1):
         if type(trackers[0]) is utils.Vector:
             new_trackers_vectors = tracking.model_based(trackers, frame)
         else:
-            new_trackers = tracking.find_trackers(trackers, frame)
+            new_trackers = tracking.simple_nearest_point(trackers, frame)
             new_trackers_vectors = utils.trackers_vectors(new_trackers)
 
         new_frame = draw_trackers_vectors(new_trackers_vectors, frame)
         return new_frame, new_trackers_vectors
+    elif alg == 4:
+        if type(trackers[0]) is utils.Vector:
+            trackers = utils.find_trackers_1(frame, frames_square_size=6)
+
+        new_trackers = tracking.euclidean_nearest_point(trackers, frame)
+        new_frame = draw_trackers(new_trackers, frame)
+        return new_frame, new_trackers
+
+
+def frame_1():
+
+    cap = open_video()
+    trackers, frame1 = find_trackers_frame1(cap)
+
+    while cap.isOpened():
+        cv2.imshow('frame', frame1)
+        key = cv2.waitKey(1)
+
+        if key & 0xFF == ord('q'):
+            break
+
+        elif key & 0xFF == ord('w'):
+            ret, frame = cap.read()
+            frame1, trackers = track(trackers, frame, alg=1)
+
+        elif key & 0xFF == ord('e'):
+            ret, frame = cap.read()
+            frame1, trackers = track(trackers, frame, alg=2)
+
+        elif key & 0xFF == ord('r'):
+            ret, frame = cap.read()
+            frame1, trackers = track(trackers, frame, alg=3)
+
+        elif key & 0xFF == ord('b'):
+            ret, frame = cap.read()
+            frame1, trackers = track(trackers, frame, alg=4)
 
 
 def main():
@@ -130,4 +171,4 @@ def main():
     cap.release()
     cv2.destroyAllWindows()
 
-main()
+frame_1()

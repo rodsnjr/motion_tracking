@@ -1,12 +1,24 @@
 import numpy as np
 
 
-class Tracker(object):
-    def __init__(self, positions, index, tracking=True, pixels=None):
+class AbstractTracker(object):
+    def __init__(self, tracking=True):
+        self.tracking = tracking
+
+    def stop_tracking(self):
+        self.tracking = False
+
+    def start_tracking(self):
+        self.tracking = True
+
+
+class Tracker(AbstractTracker):
+    def __init__(self, positions, index, pixels=None):
+        super().__init__()
         self.positions = positions
         self.index = index
-        self.tracking = tracking
         self.pixels = pixels
+        self.pixel_sum = 0
 
     def middle(self):
         mid = len(self.positions) // 2
@@ -18,11 +30,13 @@ class Tracker(object):
     def color(self):
         return color(self.index)
 
-    def stop_tracking(self):
-        self.tracking = False
-
-    def start_tracking(self):
-        self.tracking = True
+    def binary_pixel_sum(self):
+        if self.pixel_sum == 0:
+            binary_pixels = self.pixels.copy()
+            binary_pixels[binary_pixels == 255] = 1
+            for row in binary_pixels:
+                self.pixel_sum += sum(row)
+        return self.pixel_sum
 
     def __eq__(self, other):
         self.positions.sort()
@@ -33,8 +47,9 @@ class Tracker(object):
         return self.middle()[0] < other.middle()[0]
 
 
-class Vector(object):
+class Vector(AbstractTracker):
     def __init__(self, start, direction, size):
+        super().__init__()
         self.start = start
         self.direction = direction
         self.size = size
@@ -202,6 +217,7 @@ def thresh_segmentation(src, threshold=230, color1=0, color2=255):
 def find_trackers_1(frame, frames_square_size=0):
 
     image = expose_trackers(frame)
+    exposed_frame = image.copy()
 
     trackers = []
     i = 0
@@ -212,7 +228,7 @@ def find_trackers_1(frame, frames_square_size=0):
                 find = tracker_positions(image, (x, y))
 
                 if frames_square_size > 0:
-                    tracker = Tracker(find, i, True, get_square(frame, find[0], frames_square_size))
+                    tracker = Tracker(find, i, get_square(exposed_frame, find[0], frames_square_size))
                 else:
                     tracker = Tracker(find, i)
 
@@ -261,7 +277,7 @@ def get_square(frame, xy, size):
 
     while sy < y_size:
         while sx < x_size:
-            square[y][x] = frame[sy][sx][1]
+            square[y][x] = frame[sy][sx]
             sx += 1
             x += 1
         y += 1
@@ -332,7 +348,9 @@ def trackers_vectors(trackers):
         if closest_tracker is not 0:
             closed_dist.append(minor_dist)
             direction = closest_tracker.middle()
-            vectors.append(Vector(tracker.middle(), direction, minor_dist))
+            vec = Vector(tracker.middle(), direction, minor_dist)
+            vec.tracking = tracker.tracking
+            vectors.append(vec)
             minor_dist = 1000
             closest_tracker = 0
 
@@ -390,6 +408,10 @@ def find_trackers_vector(vector, frame):
 def sad(p1, p2):
     import distances
     value = 0
+
+    p1[p1 == 255] = 1
+    p2[p2 == 255] = 1
+
     for row, row1 in zip(p1, p2):
         value += distances.manhattan_distance(row, row1)
     return value

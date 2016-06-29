@@ -7,7 +7,8 @@ def simple_nearest_point(trackers, next_frame):
     # using the flood fill technique
     def create_tracker(pos, current_tracker):
         positions = utils.tracker_positions(next_frame, pos)
-        n_tracker = utils.Tracker(positions, current_tracker.index, current_tracker.tracking)
+        n_tracker = utils.Tracker(positions, current_tracker.index)
+        n_tracker.tracking = current_tracker.tracking
         if not n_tracker .noise():
             new_trackers.append(n_tracker)
             return True
@@ -44,7 +45,8 @@ def euclidean_nearest_point(trackers, next_frame):
 
     def create_tracker(current_tracker, start_position):
         square, positions = utils.get_square_positions(next_frame, start_position, 6)
-        n_tracker = utils.Tracker(positions, current_tracker.index, current_tracker.tracking, square)
+        n_tracker = utils.Tracker(positions, current_tracker.index, square)
+        n_tracker.tracking = current_tracker.tracking
         if not n_tracker.noise():
             new_trackers.append(n_tracker)
 
@@ -70,7 +72,7 @@ def euclidean_nearest_point(trackers, next_frame):
 
 # might assume that each tracker has its own pixels as a square
 # else set the oldFrame parameter
-def image_comparison(trackers, next_frame, default_size=6):
+def image_comparison(trackers, next_frame, default_size=12):
     """
     1- Para cada marcador fazer a comparação da soma de diferenças absolutas
 
@@ -81,64 +83,50 @@ def image_comparison(trackers, next_frame, default_size=6):
     """
     # Create tracker
     def create_tracker(current_tracker, square, positions):
-        n_tracker = utils.Tracker(positions, current_tracker.index, current_tracker.tracking, square)
+        n_tracker = utils.Tracker(positions, current_tracker.index, square)
+        n_tracker.tracking = current_tracker.tracking
         if not n_tracker.noise():
             new_trackers.append(n_tracker)
 
-    def recursive_search(sxy, current_tracker, size):
-        square, positions = utils.get_square_positions(next_frame, sxy, size)
-        if len(positions) > 0:
-            return create_tracker(current_tracker, square, positions)
-        if size < 30:
-            recursive_search(sxy, current_tracker, size+1)
-
     def get_sad(position):
-        square, positions = utils.get_square_positions(next_frame, position, default_size)
+        square = utils.get_square(exposed_frame, position, default_size)
         sad = utils.sad(square, tracker.pixels)
-        return sad, square, positions
+        return sad
+
+    def search(curr_xy):
+        xy_top = (curr_xy[0], curr_xy[1] + 1)
+        xy_bot = (curr_xy[0], curr_xy[1] - 1)
+        xy_left = (curr_xy[0] - 1, curr_xy[1])
+        xy_right = (curr_xy[0] + 1, curr_xy[1])
+
+        middle = get_sad(curr_xy)
+        top = get_sad(xy_top)
+        bot = get_sad(xy_bot)
+        left = get_sad(xy_left)
+        right = get_sad(xy_right)
+
+        if middle <= square_sum:
+            return curr_xy
+
+        if top < bot and top < left and top < right:
+            search(xy_top)
+        elif bot < left and bot < right:
+            search(xy_bot)
+        elif left < right:
+            search(xy_left)
+        else:
+            search(xy_right)
 
     new_trackers = []
 
+    exposed_frame = utils.expose_trackers(next_frame)
+
     for tracker in trackers:
-        xy = tracker.middle()
-        xy_top = (xy[0], xy[1] + 1)
-        xy_bot = (xy[0], xy[1] - 1)
-        xy_left = (xy[0] - 1, xy[1])
-        xy_right = (xy[0] + 1, xy[1])
+        square_sum = tracker.binary_pixel_sum()
+        xy = search(tracker.middle())
+        square, positions = utils.get_square_positions(exposed_frame, xy, len(tracker.positions))
+        create_tracker(tracker, positions)
 
-        middle, sq, pos = get_sad(xy)
-        top, sq_top, top_positions = get_sad(xy_top)
-        bot, sq_bot, bot_positions = get_sad(xy_bot)
-        left, sq_left, left_positions = get_sad(xy_left)
-        right, sq_right, right_positions = get_sad(xy_right)
-
-        if middle < top and middle < bot and middle < left and middle < right:
-            if len(pos) > 0:
-                create_tracker(tracker, sq, pos)
-            else:
-                recursive_search(xy, tracker, default_size + 1)
-        elif top < bot and top < left and top < right:
-            if len(top_positions) > 0:
-                create_tracker(tracker, sq_top, top_positions)
-            else:
-                recursive_search(xy_top, tracker, default_size+1)
-        elif bot < left and bot < right:
-            if len(bot_positions) > 0:
-                create_tracker(tracker, sq_bot, bot_positions)
-            else:
-                recursive_search(xy_bot, tracker, default_size+1)
-        elif left < right:
-            if len(left_positions) > 0:
-                create_tracker(tracker, sq_left, left_positions)
-            else:
-                recursive_search(xy_left,tracker, default_size+1)
-        else:
-            if len(right_positions) > 0:
-                create_tracker(tracker, sq_right, right_positions)
-            else:
-                recursive_search(xy_right, tracker, default_size+1)
-
-    sorted(new_trackers)
     return new_trackers
 
 
@@ -162,8 +150,9 @@ def model_based(vectors, next_frame):
 
     for index, vector in enumerate(vectors):
         tracker1pos, tracker2pos = utils.find_trackers_vector(vector, exposed_frame)
-        vector = utils.create_vector(tracker1pos, tracker2pos)
-        if vector is not None:
-            new_vectors.append(vector)
+        new_vector = utils.create_vector(tracker1pos, tracker2pos)
+        if new_vector is not None:
+            new_vector.tracking = vector.tracking
+            new_vectors.append(new_vector)
 
     return new_vectors

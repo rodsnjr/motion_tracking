@@ -10,7 +10,7 @@ def open_video():
 def find_trackers_frame1(cap):
     ret, frame = cap.read()
     # Usando flood fill
-    trackers = utils.find_trackers_1(frame, frames_square_size=6)
+    trackers = utils.find_trackers_1(frame, frames_square_size=12)
     frame = draw_trackers(trackers, frame)
     return trackers, frame
 
@@ -28,9 +28,10 @@ def draw_trackers(trackers, frame):
 
 def draw_trackers_vectors(vectors, frame):
     for index, vector in enumerate(vectors):
-        frame = cv2.line(frame, vector.start, vector.direction, (255, 0, 0), 2)
-        frame = cv2.circle(frame, vector.start, 10, utils.color(index), 5)
-        frame = cv2.circle(frame, vector.direction, 10, utils.color(index + 1), 5)
+        if vector.tracking:
+            frame = cv2.line(frame, vector.start, vector.direction, (255, 0, 0), 2)
+            frame = cv2.circle(frame, vector.start, 10, utils.color(index), 5)
+            frame = cv2.circle(frame, vector.direction, 10, utils.color(index + 1), 5)
     return frame
 
 
@@ -80,14 +81,14 @@ def key_events(key, trackers):
 def track(trackers, frame, alg=1):
     if alg == 1:
         if type(trackers[0]) is utils.Vector:
-            trackers = utils.find_trackers_1(frame, frames_square_size=6)
+            trackers = utils.find_trackers_1(frame, frames_square_size=12)
 
         new_trackers = tracking.simple_nearest_point(trackers, frame)
         new_frame = draw_trackers(new_trackers, frame)
         return new_frame, new_trackers
     elif alg == 2:
         if type(trackers[0]) is utils.Vector:
-            trackers = utils.find_trackers_1(frame, frames_square_size=6)
+            trackers = utils.find_trackers_1(frame, frames_square_size=12)
 
         new_trackers = tracking.image_comparison(trackers, frame)
         new_frame = draw_trackers(new_trackers, frame)
@@ -103,23 +104,31 @@ def track(trackers, frame, alg=1):
         return new_frame, new_trackers_vectors
     elif alg == 4:
         if type(trackers[0]) is utils.Vector:
-            trackers = utils.find_trackers_1(frame, frames_square_size=6)
+            trackers = utils.find_trackers_1(frame, frames_square_size=12)
 
         new_trackers = tracking.euclidean_nearest_point(trackers, frame)
         new_frame = draw_trackers(new_trackers, frame)
         return new_frame, new_trackers
 
 
-def frame_1():
+def frame_1(record=False):
 
     cap = open_video()
     trackers, frame1 = find_trackers_frame1(cap)
+
+    if record:
+        # Define the codec and create VideoWriter object
+        fourcc = cv2.VideoWriter_fourcc(*'XVID')
+        out = cv2.VideoWriter('output.avi', fourcc, 20.0, (640, 480))
 
     while cap.isOpened():
         cv2.imshow('frame', frame1)
         key = cv2.waitKey(1)
 
-        if key & 0xFF == ord('q'):
+        if record:
+            out.write(frame1)
+
+        if key_events(key, trackers) == -1:
             break
 
         elif key & 0xFF == ord('w'):
@@ -137,6 +146,11 @@ def frame_1():
         elif key & 0xFF == ord('b'):
             ret, frame = cap.read()
             frame1, trackers = track(trackers, frame, alg=4)
+
+    cap.release()
+    cv2.destroyAllWindows()
+    if record:
+        out.release()
 
 
 def main():
@@ -171,4 +185,4 @@ def main():
     cap.release()
     cv2.destroyAllWindows()
 
-frame_1()
+frame_1(record=True)

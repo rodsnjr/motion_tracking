@@ -217,7 +217,6 @@ def thresh_segmentation(src, threshold=230, color1=0, color2=255):
 def find_trackers_1(frame, frames_square_size=0):
 
     image = expose_trackers(frame)
-    exposed_frame = image.copy()
 
     trackers = []
     i = 0
@@ -228,7 +227,7 @@ def find_trackers_1(frame, frames_square_size=0):
                 find = tracker_positions(image, (x, y))
 
                 if frames_square_size > 0:
-                    tracker = Tracker(find, i, get_square(exposed_frame, find[0], frames_square_size))
+                    tracker = Tracker(find, i, get_square(image, find[0], frames_square_size))
                 else:
                     tracker = Tracker(find, i)
 
@@ -300,9 +299,9 @@ def get_square_positions(frame, xy, size):
 
     while sy < y_size:
         while sx < x_size:
-            pixel = frame[sy][sx][1]
+            pixel = frame[sy][sx]
             square[y][x] = pixel
-            if pixel >= 230:
+            if pixel == 255:
                 pos.append((sx, sy))
             sx += 1
             x += 1
@@ -406,14 +405,16 @@ def find_trackers_vector(vector, frame):
 
 
 def sad(p1, p2):
-    import distances
+    p1[p1 > 200] = 1
+    p2[p2 > 200] = 1
+
     value = 0
-
-    p1[p1 == 255] = 1
-    p2[p2 == 255] = 1
-
     for row, row1 in zip(p1, p2):
-        value += distances.manhattan_distance(row, row1)
+        for col, col1 in zip(row, row1):
+            if col1 > 1 or col > 1:
+                print("error col1 %d, col %d" % (col1, col))
+            value += col1-col
+
     return value
 
 # Array, ex [[1,2,3], [4,3,1], [4,4,4]]

@@ -72,13 +72,11 @@ def euclidean_nearest_point(trackers, next_frame):
 
 # might assume that each tracker has its own pixels as a square
 # else set the oldFrame parameter
-def image_comparison(trackers, next_frame, default_size=12):
+def image_comparison(trackers, next_frame, default_size=15):
     """
     1- Para cada marcador fazer a comparação da soma de diferenças absolutas
-
     2- A partir do square(array quadrado em volta do ponto) atual de cada marcador
        checar o sad nas quatro mediações(acima, abaixo, na esquerda e na direita)
-
     3- O maior SAD deverá ser onde está a nova posição do marcador
     """
     # Create tracker
@@ -105,27 +103,27 @@ def image_comparison(trackers, next_frame, default_size=12):
         left = get_sad(xy_left)
         right = get_sad(xy_right)
 
-        if middle <= square_sum:
-            return curr_xy
+        all_equals = middle == top == bot == left == right
 
-        if top < bot and top < left and top < right:
-            search(xy_top)
+        if middle <= 8 or all_equals:
+            return curr_xy
+        elif top < bot and top < left and top < right:
+            return search(xy_top)
         elif bot < left and bot < right:
-            search(xy_bot)
+            return search(xy_bot)
         elif left < right:
-            search(xy_left)
+            return search(xy_left)
         else:
-            search(xy_right)
+            return search(xy_right)
 
     new_trackers = []
 
     exposed_frame = utils.expose_trackers(next_frame)
 
     for tracker in trackers:
-        square_sum = tracker.binary_pixel_sum()
         xy = search(tracker.middle())
-        square, positions = utils.get_square_positions(exposed_frame, xy, len(tracker.positions))
-        create_tracker(tracker, positions)
+        square, positions = utils.get_square_positions(exposed_frame, xy, default_size)
+        create_tracker(tracker, square, positions)
 
     return new_trackers
 

@@ -10,7 +10,7 @@ def open_video():
 def find_trackers_frame1(cap):
     ret, frame = cap.read()
     # Usando flood fill
-    trackers = utils.find_trackers_1(frame, frames_square_size=12)
+    trackers = utils.find_trackers_1(frame, frames_square_size=15)
     frame = draw_trackers(trackers, frame)
     return trackers, frame
 
@@ -81,14 +81,14 @@ def key_events(key, trackers):
 def track(trackers, frame, alg=1):
     if alg == 1:
         if type(trackers[0]) is utils.Vector:
-            trackers = utils.find_trackers_1(frame, frames_square_size=12)
+            trackers = utils.find_trackers_1(frame, frames_square_size=15)
 
         new_trackers = tracking.simple_nearest_point(trackers, frame)
         new_frame = draw_trackers(new_trackers, frame)
         return new_frame, new_trackers
     elif alg == 2:
         if type(trackers[0]) is utils.Vector:
-            trackers = utils.find_trackers_1(frame, frames_square_size=12)
+            trackers = utils.find_trackers_1(frame, frames_square_size=15)
 
         new_trackers = tracking.image_comparison(trackers, frame)
         new_frame = draw_trackers(new_trackers, frame)
@@ -104,7 +104,7 @@ def track(trackers, frame, alg=1):
         return new_frame, new_trackers_vectors
     elif alg == 4:
         if type(trackers[0]) is utils.Vector:
-            trackers = utils.find_trackers_1(frame, frames_square_size=12)
+            trackers = utils.find_trackers_1(frame, frames_square_size=15)
 
         new_trackers = tracking.euclidean_nearest_point(trackers, frame)
         new_frame = draw_trackers(new_trackers, frame)
@@ -147,6 +147,10 @@ def frame_1(record=False):
             ret, frame = cap.read()
             frame1, trackers = track(trackers, frame, alg=4)
 
+        elif key & 0xFF == ord('z'):
+            ret, frame = cap.read()
+            frame1 = utils.expose_trackers(frame)
+
     cap.release()
     cv2.destroyAllWindows()
     if record:
@@ -166,7 +170,7 @@ def main():
         if not stop:
             ret, frame = cap.read()
             if ret:
-                new_frame, trackers = track(trackers, frame, alg=1)
+                new_frame, trackers = track(trackers, frame, alg=2)
                 cv2.imshow('frame', new_frame)
                 index += 1
             else:
@@ -185,4 +189,4 @@ def main():
     cap.release()
     cv2.destroyAllWindows()
 
-frame_1(record=True)
+frame_1()

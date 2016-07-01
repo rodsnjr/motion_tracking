@@ -86,6 +86,9 @@ def image_comparison(trackers, next_frame, default_size=15):
         if not n_tracker.noise():
             new_trackers.append(n_tracker)
 
+    # ultima versão tenta buscar em quadrados de frames binários
+    # porém sem sucesso também
+    # a melhor aproximação foi utilizada na branch 0.2
     def get_sad(position):
         square = utils.get_square(exposed_frame, position, default_size)
         sad = utils.sad(square, tracker.pixels)

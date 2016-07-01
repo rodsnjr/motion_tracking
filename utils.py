@@ -143,10 +143,12 @@ def expose_trackers(frame):
 
     # blur the image to remove noise
     # OpenCV Blur, probably faster
-    import cv2
-    dst = cv2.medianBlur(image, 3)
+    # import cv2
+    # dst = cv2.medianBlur(image, 3)
     # My simple median_blur
-    # dst = median_blur(image)
+    # A lot Slower the the OpenCV version
+    # No native C/Compiled code executing
+    dst = median_blur(image)
 
     dst = np_thresh_segmentation(dst)
 

@@ -89,7 +89,7 @@ def model_based(trackers, next_frame):
     vectors = utils.trackers_vectors(trackers)
     new_trackers = find_trackers(trackers, next_frame)
     new_vectors = utils.trackers_vectors(new_trackers)
-    """
+
     for vector in vectors:
         minor_dif = 1000
         closest_vector = None
@@ -101,13 +101,5 @@ def model_based(trackers, next_frame):
         if closest_vector is not None:
             closest_vector.start.index = vector.start.index
             closest_vector.direction.index = vector.direction.index
-
-    print("rastreando \n")
-
-    for tracker, tracker1 in zip(trackers, new_trackers):
-        print("old %d, new %d" % (tracker.index, tracker1.index))
-
-    print("\n")
-    """
 
     return new_trackers
